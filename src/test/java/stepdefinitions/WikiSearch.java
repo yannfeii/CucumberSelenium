@@ -19,7 +19,9 @@ public class WikiSearch {
     private String title;
     private wikiPage wikiPage = new wikiPage(DriverFactory.getDriver());
     Map<String,String> languageSelected = new HashMap<>();
+    Map<String,String> urlSelected = new HashMap<>();
     Logger logger = Logger.getLogger(WikiSearch.class.getName());
+    Map<String,String> nonStandardUrl = new HashMap<>();
 
     @Given("user is on wiki main page")
     public void user_is_on_wiki_main_page() {
@@ -36,23 +38,41 @@ public class WikiSearch {
          * Random select 10 languages and navigate to the specifically URL
          */
 
+        nonStandardUrl.put("বাংলা","bn.wikipedia.org");
+        nonStandardUrl.put("العربية","ar.wikipedia.org");
+        nonStandardUrl.put("Türkçe","tr.wikipedia.org");
+        nonStandardUrl.put("Português","pt.wikipedia.org");
+        nonStandardUrl.put("한국어","ko.wikipedia.org");
+        nonStandardUrl.put("Euskara","eu.wikipedia.org");
+        nonStandardUrl.put("Srpski","sr.wikipedia.org");
+        nonStandardUrl.put("עברית","he.wikipedia.org");
+        nonStandardUrl.put("Français","fr.wikipedia.org");
+        nonStandardUrl.put("فارسی","fa.wikipedia.org");
+        //nonStandardUrl.put("বাংলা","en.wikipedia.org");
+        nonStandardUrl.put("Simple English","simple.wikipedia.org");
+        nonStandardUrl.put("Meta-Wiki","meta.wikimedia.org");
+
         Map<String,String> languageList = wikiPage.getLanguageList();
         String[] keys = languageList.keySet().toArray(new String[0]);
         Random random = new Random();
-        int count = 0;
 
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 10; i++) {
             String language = keys[random.nextInt(keys.length)];
             String url = languageList.get(language);
-            logger.info(++count + "----- "+language+ " ----------- language is selected");
+            logger.info(i + "----- " + language + " ----------- language is selected");
             wikiPage.openUrl(url);
-            title = wikiPage.getWikiPageTitle();
+            String currURL = wikiPage.getWikePageUrl();
+
             logger.info("user is navigated to new language page");
             wikiPage.timeOut();
-            wikiPage.clickButton();
-            String languageDisplaied = wikiPage.getLanguageDisplay();
-            if(!languageDisplaied.isEmpty()) {
-                languageSelected.put(language, languageDisplaied);
+            if(nonStandardUrl.keySet().contains(language)){
+                urlSelected.put(language,currURL);
+            }else {
+                wikiPage.clickButton();
+                String languageDisplaied = wikiPage.getLanguageDisplay();
+                if (!languageDisplaied.isEmpty()) {
+                    languageSelected.put(language, languageDisplaied);
+                }
             }
         }
 
@@ -64,12 +84,25 @@ public class WikiSearch {
          * validate seleted language is matching with display language on page
          */
 
+        // the language which do not have display button on page
+
+
         for(String expLanguage:languageSelected.keySet()){
             String languageSel = languageSelected.get(expLanguage).replaceAll("\\(", "").replaceAll("\\)", "");
             String expLanguageS = expLanguage.split("/")[0];
-            logger.info(expLanguage+"------"+languageSel);
+
             Assert.assertTrue(StringUtils.containsIgnoreCase(expLanguageS, languageSel)
                     || StringUtils.containsIgnoreCase(languageSel, expLanguageS));
+            logger.info(expLanguage+"------"+languageSel);
+        }
+        if(!urlSelected.isEmpty()){
+            for(String key:urlSelected.keySet()){
+                if (nonStandardUrl.keySet().contains(key)) {
+                    Assert.assertTrue(urlSelected.get(key).contains(nonStandardUrl.get(key)));
+                    logger.info(key+ "---------" + urlSelected.get(key));
+                }
+
+            }
         }
 
         logger.info("validates language is rendered");
