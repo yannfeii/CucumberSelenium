@@ -1,14 +1,15 @@
 package stepdefinitions;
 
+import com.pages.WikiPagePF;
 import com.qa.factory.DriverFactory;
 import io.cucumber.java.en.*;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
-
-import com.pages.wikiPage;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.PageFactory;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
@@ -17,7 +18,8 @@ import java.util.logging.Logger;
 public class WikiSearch {
 
     private String title;
-    private wikiPage wikiPage = new wikiPage(DriverFactory.getDriver());
+    //private wikiPage wikiPage = new wikiPage(DriverFactory.getDriver());
+    private WikiPagePF wikiPage = new WikiPagePF(DriverFactory.getDriver());
     Map<String,String> languageSelected = new HashMap<>();
     Map<String,String> urlSelected = new HashMap<>();
     Logger logger = Logger.getLogger(WikiSearch.class.getName());
@@ -25,10 +27,12 @@ public class WikiSearch {
 
     @Given("user is on wiki main page")
     public void user_is_on_wiki_main_page() {
+
         DriverFactory.getDriver().get("https://en.wikipedia.org/wiki/Main_Page");
         wikiPage.timeOut();
         title = wikiPage.getWikiPageTitle();
         logger.info("Current pagae title is "+title);
+
     }
 
     @When("user is navigated to new language page")
@@ -45,12 +49,14 @@ public class WikiSearch {
         nonStandardUrl.put("한국어","ko.wikipedia.org");
         nonStandardUrl.put("Euskara","eu.wikipedia.org");
         nonStandardUrl.put("Srpski","sr.wikipedia.org");
+        nonStandardUrl.put("Српски / srpski","sr.wikipedia.org");
         nonStandardUrl.put("עברית","he.wikipedia.org");
         nonStandardUrl.put("Français","fr.wikipedia.org");
         nonStandardUrl.put("فارسی","fa.wikipedia.org");
         //nonStandardUrl.put("বাংলা","en.wikipedia.org");
         nonStandardUrl.put("Simple English","simple.wikipedia.org");
         nonStandardUrl.put("Meta-Wiki","meta.wikimedia.org");
+
 
         Map<String,String> languageList = wikiPage.getLanguageList();
         String[] keys = languageList.keySet().toArray(new String[0]);
@@ -61,7 +67,7 @@ public class WikiSearch {
             String url = languageList.get(language);
             logger.info(i + "----- " + language + " ----------- language is selected");
             wikiPage.openUrl(url);
-            String currURL = wikiPage.getWikePageUrl();
+            String currURL = wikiPage.getWikiPageUrl();
 
             logger.info("user is navigated to new language page");
             wikiPage.timeOut();
@@ -69,6 +75,7 @@ public class WikiSearch {
                 urlSelected.put(language,currURL);
             }else {
                 wikiPage.clickButton();
+                wikiPage.timeOut();
                 String languageDisplaied = wikiPage.getLanguageDisplay();
                 if (!languageDisplaied.isEmpty()) {
                     languageSelected.put(language, languageDisplaied);
@@ -129,20 +136,17 @@ public class WikiSearch {
 
     @Then("^check (.*) info$")
     public void user_is_navigated_to_search_results(String celebrity) {
-        HashSet<String> personalInfos = wikiPage.getpersonalInfos();
-        //String birthDateTxt = wikiPage.getBirthDateTxt();
-        String birthDate = "";
-        String spouse = "";
-        for (String info:personalInfos) {
-            if (StringUtils.indexOf(info, "born ") > 0 && birthDate.isEmpty()) {
-                birthDate = StringUtils.substringBetween(info, "born ", ")");
-                logger.info("---------- " + celebrity + " birth date is " + birthDate);
-            }else if (StringUtils.indexOf(info, "wife") > 0 || StringUtils.indexOf(info, "husband") > 0){
-                spouse = StringUtils.substringBetween(info, "wife ", ",");
-                spouse = StringUtils.substringBetween(info, "husband ", ",");
-            }
+
+        String birthDate = wikiPage.getBirthDate();
+        List<String> spouseName = wikiPage.getSpouse();
+        logger.info("---------- " + celebrity + "'s birthdate is " + birthDate);
+
+        if(spouseName.isEmpty()){
+            logger.info("---------- " + celebrity + " is still single");
+        }else {
+            String spouse = spouseName.get(spouseName.size()-1).replace("\n","");
+            logger.info("---------- " + spouse + " is " + celebrity + "'s spouse");
         }
-        logger.info("---------- "+ spouse+" is " + celebrity + "'s spouse");
 
     }
 
